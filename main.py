@@ -16,11 +16,13 @@ class ReservationSystem:
         return True
             
     def reserve_room(self, name, check_in_date, checkout_date):
+        
         for i in range(len(self.rooms)):
+            # TODO check for check-in, check-out date range
             if not self.rooms[i]:  # Find the first empty room
                 self.rooms[i].add((name, check_in_date, checkout_date))
                 return i + 1  # Return room number
-        return Exception("No rooms available.")
+        return Exception("No rooms available.") # TODO create custome NoRoomException
                 
     def cancel_reservation(self, roomNumber, name, check_in_date, checkout_date):
         if (name, check_in_date, checkout_date) in self.rooms[roomNumber - 1]:
