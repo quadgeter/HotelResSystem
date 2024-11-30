@@ -8,21 +8,25 @@ class ReservationSystem:
         self.hotel_name = hotel_name
         self.date = current_date
         self.rooms = [set() for _ in range(numRooms)]
-        
-    def is_full(self):
-        for room in self.rooms:
-            if not room:
-                return False
-        return True
             
-    def reserve_room(self, name, check_in_date, checkout_date):
+    def findRoom(self, name, check_in_date, checkout_date):
         
+        check_in_date = datetime.strptime(check_in_date, "%m/%d/%Y")
+        checkout_date = datetime.strptime(checkout_date, "%m/%d/%Y")
+    
         for i in range(len(self.rooms)):
-            # TODO check for check-in, check-out date range
-            if not self.rooms[i]:  # Find the first empty room
-                self.rooms[i].add((name, check_in_date, checkout_date))
-                return i + 1  # Return room number
-        return Exception("No rooms available.") # TODO create custome NoRoomException
+            conflict = False
+            for reservation in self.rooms[i]:
+                res_check_in = datetime.strptime(reservation[1], "%m/%d/%Y")
+                res_check_out = datetime.strptime(reservation[2], "%m/%d/%Y")
+                if not (checkout_date <= res_check_in or check_in_date >= res_check_out):  # handle same room different dates 
+                    conflict = True
+                    break
+            if not conflict:
+                self.rooms[i].add((name, check_in_date.strftime("%m/%d/%Y"), checkout_date.strftime("%m/%d/%Y")))
+                return i + 1
+            
+        return -1
                 
     def cancel_reservation(self, roomNumber, name, check_in_date, checkout_date):
         if (name, check_in_date, checkout_date) in self.rooms[roomNumber - 1]:
@@ -43,7 +47,7 @@ class HotelReservationApp:
         root.geometry("450x500")
         
         # Header
-        header = tk.Label(root, text="Welcome to Greensboro Hotel", font=("Arial", 14), bg="lightgray")
+        header = tk.Label(root, text="Welcome to Greensboro Hotel", font=("Arial", 14))
         header.pack(fill=tk.X)
         
         # Top Section (Input)
@@ -80,6 +84,7 @@ class HotelReservationApp:
         self.current_checkin = None
         self.current_checkout = None
     
+    # corresponds to HotelFull() method in Project instructions
     def check_availability(self):
         name = self.name_entry.get()
         checkin_date = self.checkin_entry.get()
@@ -101,7 +106,11 @@ class HotelReservationApp:
             return
         
         try:
-            room_number = self.system.reserve_room(name, checkin_date, checkout_date)
+            room_number = self.system.findRoom(name, checkin_date, checkout_date)
+            
+            if room_number < 0:
+                raise Exception() #TODO create custom exception NoRoomException class and replace
+            
             self.current_room = room_number
             self.current_name = name
             self.current_checkin = checkin_date
@@ -114,11 +123,15 @@ class HotelReservationApp:
             )
             self.book_button.pack(pady=5)
             self.cancel_button.pack(pady=5)
-        except Exception:
+        except Exception: # TODO except NoRoomException
             self.output_label.config(
-                text="Unfortunately, there are no available rooms from check-in date to check-out date.",
+                text=f"Unfortunately, there are no available rooms from {checkin_date} to {checkout_date}.",
                 fg="red"
             )
+            
+            # Ensure buttons are not visible
+            self.book_button.pack_forget()
+            self.cancel_button.pack_forget()
         
         self.bottom_section.pack(fill=tk.BOTH, expand=True)
 
